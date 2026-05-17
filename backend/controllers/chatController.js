@@ -8,15 +8,15 @@ const handleChat = async (req, res) => {
         const students = await Student.find({}, 'name rollNumber course grade');
         const contextString = JSON.stringify(students);
 
-        // 2. Direct Official Google Gemini API Call (Using process.env or fallback check)
         const apiKey = process.env.GEMINI_API_KEY;
         
         if (!apiKey) {
             throw new Error("GEMINI_API_KEY is missing in environment variables.");
         }
 
+        // 🚨 ENDPOINT KO STABLE v1 AUR MODEL KO gemini-1.5-flash PAR SET KIYA HAI
         const response = await axios.post(
-            `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
+            `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
             {
                 contents: [
                     {
@@ -35,7 +35,7 @@ const handleChat = async (req, res) => {
                 headers: {
                     'Content-Type': 'application/json'
                 },
-                timeout: 10000 // 10 seconds safety timeout
+                timeout: 10000
             }
         );
 
@@ -44,14 +44,14 @@ const handleChat = async (req, res) => {
             const replyText = response.data.candidates[0].content.parts[0].text;
             return res.json({ reply: replyText });
         } else {
-            throw new Error("Gemini API structural empty response");
+            throw new Error("Gemini API returned an empty structure.");
         }
 
     } catch (error) {
-        // 🚨 Is baar Console me detail error message print hoga taaki Render Logs me dikhe asli baat kya hai
+        // Render logs me exact description print hogi agar ab bhi dikkat aati hai
         console.error("DEBUG - Gemini Failure Cause:", error.response?.data || error.message);
         
-        // Final Bulletproof Fallback
+        // Final Safety Fallback
         const studentsRaw = await Student.find({}, 'name course grade');
         const latestStudent = studentsRaw[studentsRaw.length - 1];
 
