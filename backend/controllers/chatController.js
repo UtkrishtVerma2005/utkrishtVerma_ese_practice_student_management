@@ -4,19 +4,18 @@ const Student = require('../models/Student');
 const handleChat = async (req, res) => {
     const { message } = req.body;
     try {
-        // 1. Fetch live contextual database from MongoDB
+        // 1. MongoDB Cloud se fresh data lekar context banana
         const students = await Student.find({}, 'name rollNumber course grade');
         const contextString = JSON.stringify(students);
 
         const apiKey = process.env.GEMINI_API_KEY;
-        
         if (!apiKey) {
             throw new Error("GEMINI_API_KEY is missing in environment variables.");
         }
 
-        // 🚨 ENDPOINT KO STABLE v1 AUR MODEL KO gemini-1.5-flash PAR SET KIYA HAI
+        // 🚨 GAJBAD YAHAN THI: Model ke naam se pehle 'models/' lagana zaroori hai standard API me!
         const response = await axios.post(
-            `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
+            `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
             {
                 contents: [
                     {
@@ -44,14 +43,14 @@ const handleChat = async (req, res) => {
             const replyText = response.data.candidates[0].content.parts[0].text;
             return res.json({ reply: replyText });
         } else {
-            throw new Error("Gemini API returned an empty structure.");
+            throw new Error("Gemini API structural empty response");
         }
 
     } catch (error) {
-        // Render logs me exact description print hogi agar ab bhi dikkat aati hai
+        // Safe Console Logging
         console.error("DEBUG - Gemini Failure Cause:", error.response?.data || error.message);
         
-        // Final Safety Fallback
+        // Safety Fallback (Front-end crash nahi hone dega)
         const studentsRaw = await Student.find({}, 'name course grade');
         const latestStudent = studentsRaw[studentsRaw.length - 1];
 
