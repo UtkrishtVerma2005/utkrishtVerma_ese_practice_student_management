@@ -13,18 +13,16 @@ const handleChat = async (req, res) => {
             throw new Error("GEMINI_API_KEY is missing in environment variables.");
         }
 
-        // 🚨 GAJBAD YAHAN THI: Model ke naam se pehle 'models/' lagana zaroori hai standard API me!
+        // 🚨 CONFIGURATION FIX: Stable production URL version 'v1' mapping standard structure
         const response = await axios.post(
-            `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
+            `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
             {
                 contents: [
                     {
+                        role: 'user',
                         parts: [
                             {
-                                text: `You are an AI Assistant for a Student Management System. Here is the active database records context: ${contextString}. Use this data to precisely answer user metrics/questions. Keep answers short, direct, and conversational.`
-                            },
-                            {
-                                text: message
+                                text: `System Instructions: You are an AI Assistant for a Student Management System. Here is the active database records context: ${contextString}. Use this data to precisely answer user metrics/questions. Keep answers short, direct, and conversational.\n\nUser Question: ${message}`
                             }
                         ]
                     }
@@ -34,7 +32,7 @@ const handleChat = async (req, res) => {
                 headers: {
                     'Content-Type': 'application/json'
                 },
-                timeout: 10000
+                timeout: 12000
             }
         );
 
@@ -43,14 +41,14 @@ const handleChat = async (req, res) => {
             const replyText = response.data.candidates[0].content.parts[0].text;
             return res.json({ reply: replyText });
         } else {
-            throw new Error("Gemini API structural empty response");
+            throw new Error("Gemini API return structure format mismatch");
         }
 
     } catch (error) {
-        // Safe Console Logging
+        // Render server logs tracking
         console.error("DEBUG - Gemini Failure Cause:", error.response?.data || error.message);
         
-        // Safety Fallback (Front-end crash nahi hone dega)
+        // Safety Fallback Engine (User UI smooth chalega)
         const studentsRaw = await Student.find({}, 'name course grade');
         const latestStudent = studentsRaw[studentsRaw.length - 1];
 
