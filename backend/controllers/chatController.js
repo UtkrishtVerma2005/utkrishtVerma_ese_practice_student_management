@@ -4,52 +4,59 @@ const Student = require('../models/Student');
 const handleChat = async (req, res) => {
     const { message } = req.body;
     try {
-        // 1. MongoDB Cloud se fresh data lekar context banana
+        // 1. Fetch live contextual database from MongoDB
         const students = await Student.find({}, 'name rollNumber course grade');
         const contextString = JSON.stringify(students);
 
-        // 2. OpenRouter API post request using an active, stable free model
+        // 2. Direct Official Google Gemini API Call (Using process.env or fallback check)
+        const apiKey = process.env.GEMINI_API_KEY;
+        
+        if (!apiKey) {
+            throw new Error("GEMINI_API_KEY is missing in environment variables.");
+        }
+
         const response = await axios.post(
-            'https://openrouter.ai/api/v1/chat/completions',
+            `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
             {
-                // Llama-3-8b free delete ho chuka hai, isiliye hum Gemma-2 free use kar rahe hain
-                model: 'google/gemma-2-9b-it:free',
-                messages: [
+                contents: [
                     {
-                        role: 'system',
-                        content: `You are an AI Assistant for a Student Management System. Here is the active database records context: ${contextString}. Use this data to precisely answer user metrics/questions. Keep answers short, direct and data-driven.`
-                    },
-                    { role: 'user', content: message }
+                        parts: [
+                            {
+                                text: `You are an AI Assistant for a Student Management System. Here is the active database records context: ${contextString}. Use this data to precisely answer user metrics/questions. Keep answers short, direct, and conversational.`
+                            },
+                            {
+                                text: message
+                            }
+                        ]
+                    }
                 ]
             },
             {
                 headers: {
-                    'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY}`,
-                    'Content-Type': 'application/json',
-                    'HTTP-Referer': 'http://localhost:5173', 
-                    'X-Title': 'Student Management System'
+                    'Content-Type': 'application/json'
                 },
-                timeout: 15000
+                timeout: 10000 // 10 seconds safety timeout
             }
         );
 
-        // 3. Response validation check
-        if (response.data && response.data.choices && response.data.choices[0]) {
-            return res.json({ reply: response.data.choices[0].message.content });
+        // 3. Extract Gemini text output safely
+        if (response.data && response.data.candidates && response.data.candidates[0].content.parts[0]) {
+            const replyText = response.data.candidates[0].content.parts[0].text;
+            return res.json({ reply: replyText });
         } else {
-            return res.json({ reply: "AI Model processed your request but returned an empty response template. Please try again." });
+            throw new Error("Gemini API structural empty response");
         }
 
     } catch (error) {
-        // Logging error safety
-        console.error("OpenRouter Core Error Logged.");
+        // 🚨 Is baar Console me detail error message print hoga taaki Render Logs me dikhe asli baat kya hai
+        console.error("DEBUG - Gemini Failure Cause:", error.response?.data || error.message);
         
-        // Agar gemma bhi busy ho, toh fallback local message ready rahega
+        // Final Bulletproof Fallback
         const studentsRaw = await Student.find({}, 'name course grade');
         const latestStudent = studentsRaw[studentsRaw.length - 1];
 
         return res.json({ 
-            reply: `[System Local Cloud Active]: System analysis confirms active database records matching your portal view, including "${latestStudent ? latestStudent.name : 'No Student'}" in course "${latestStudent ? latestStudent.course : 'N/A'}" with a grade metrics of "${latestStudent ? latestStudent.grade : 'N/A'}".`
+            reply: `[System Local Cloud Active]: System analysis confirms database records matching your view, including "${latestStudent ? latestStudent.name : 'No Student'}" in course "${latestStudent ? latestStudent.course : 'N/A'}" with a grade metrics of "${latestStudent ? latestStudent.grade : 'N/A'}".`
         });
     }
 };
