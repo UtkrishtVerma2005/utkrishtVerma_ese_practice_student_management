@@ -154,7 +154,7 @@ function App() {
     <div className="container">
       <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '25px' }}>
         <h2>Student Administration Hub (Live Cloud)</h2>
-        <button onClick={handleLogout} style={{ backgroundColor: '#ef4444', color: 'white', border: 'none', padding: '10px 18px', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}>Logout</button>
+        <button onClick={handleLogout} style={{ backgroundColor: '#000000', color: 'white', border: 'none', padding: '10px 18px', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}>Logout</button>
       </header>
 
       <div className="main-layout">
